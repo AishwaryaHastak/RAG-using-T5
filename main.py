@@ -1,9 +1,18 @@
-from src.pipeline import RAGPipeline
+# main.py 
+
+from src.mspipeline import MiniSearchRAGPipeline
+from src.espipeline import ElSearchRAGPipeline
+from src.vectorpipeline import VecSearchRAGPipeline
 
 if __name__ == "__main__":
-    pipeline = RAGPipeline()
-    # query = "What is the difference between extend and append?"
-    query = "How to retrain this same model whenever new data comes in, without losing the predictive power of the model?"
-    # query = "I an running a CUDA program and I am getting this error: cudaGetDeviceCount returned 38, no CUDA-capable device is detected."
-    response = pipeline.get_response(query,3)
+    # # Perform the search and generate the response using MiniSearch Engine
+    # pipeline = MiniSearchRAGPipeline()
+    # # Perform the search and generate the response using ElasticSearch
+    # pipeline = ElSearchRAGPipeline()
+    # Perform the search and generate the response using ElasticSearch and Vector Embeddings
+    pipeline = VecSearchRAGPipeline()
+    query = [   "How to manage model versioning in Machine Learning?",
+                "What’s the trade-off between bias and variance?",
+                "What are some common challenges in deploying a RAG model in production and how can they be addressed?"]
+    response = pipeline.rag_pipeline(query[0],3, create_new_index = True)
     print(response)
