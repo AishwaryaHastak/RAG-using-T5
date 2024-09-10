@@ -1,38 +1,72 @@
-# pipeline.py
+# vectorpipeline.py
 
 import pandas as pd
 from src import minisearch
+from elasticsearch import Elasticsearch, helpers
+from tqdm import tqdm
 from transformers import T5Tokenizer, T5ForConditionalGeneration
-from src.constants import dataset_name, keyword_fields, text_fields, model_name
-class RAGPipeline:
+from src.constants import model_name,index_name, embedding_model, embedding_size
+from sentence_transformers import SentenceTransformer
 
+class VecSearchRAGPipeline:
     def __init__(self): 
         self.query = None
         self.response = None
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
-
-        # self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-        # self.model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True)
-
-        # self.tokenizer = RobertaTokenizer.from_pretrained('Salesforce/codet5-small')
-        # self.model = T5ForConditionalGeneration.from_pretrained('Salesforce/codet5-small')
-
+        self.es = Elasticsearch("http://localhost:9200")
+        self.emb_model = SentenceTransformer(embedding_model,truncate_dim=embedding_size) 
 
     def read_data(self):
         """
         Reads data from csv file and converts it into list of dictionaries
         """
-        
         print('[DEBUG] Reading data...')
         # Read data into dataframe 
-        df = pd.read_csv("src/train.csv").dropna()
+        df = pd.read_csv("src/data/data.csv").dropna()
 
         # Convert dataframe to list of dictionaries
         data_dict = df.to_dict(orient="records")
-        return data_dict
+
+        print('[DEBUG] Generating vector embeddings...')
+        # Add answer and question vector embeddings
+        vector_data_dict = []
+        for data in tqdm(data_dict):
+            data['answer_vector'] = self.emb_model.encode(data['answer'])
+            data['question_vector'] = self.emb_model.encode(data['question'])
+            vector_data_dict.append(data)
+        return vector_data_dict
     
-    def retrieve_results(self, data_dict, query, num_results):
+    def create_index(self, data_dict):
+        print('\n\n[[DEBUG] Creating Index...')
+        index_settings={
+            "settings": {
+                    "number_of_shards": 1,
+                    "number_of_replicas": 0
+            },
+            "mappings": {
+                "properties": {
+                "question": {"type": "text"},
+                "answer": {"type": "text"},
+                "answer_vector": {"type": "dense_vector", "dims": embedding_size, "index": True, "similarity": "cosine"},
+                "question_vector": {"type": "dense_vector", "dims": embedding_size, "index": True, "similarity": "cosine"},
+                }
+            }
+        }
+        
+        # Create Index and delete if it already exists
+        self.es.indices.delete(index=index_name, ignore_unavailable=True)
+        self.es.indices.create(index=index_name, body = index_settings)
+
+        # Add Data to Index using index()
+        print('\n\n[[DEBUG] Adding data to index...')
+        for i in tqdm(range(len(data_dict))):
+            row = data_dict[i]
+            self.es.index(index=index_name, id=i, document=row)
+
+        # helpers.bulk(es, data_dict)
+
+    def search(self, data_dict, query, num_results):
         """
         Retrieves results from the index based on the query.
 
@@ -44,21 +78,20 @@ class RAGPipeline:
         Returns:
             list of str: List of results matching the search criteria, ranked by relevance.
         """
-        
-        print('[DEBUG] Creating Index...')
-        # Create Index
-        ms = minisearch.Index(
-            text_fields=text_fields,
-            keyword_fields=keyword_fields,
-        )
+        # Retrieve Search Results
+        print('\n\n[[DEBUG] Retrieving Search Results...') 
+        query_vector = self.emb_model.encode(query)
+        knn_query = {
+            "field": "answer_vector",
+            "query_vector": query_vector,
+            "k": num_results,
+            "num_candidates": 5
+        }
+        results = self.es.search(index=index_name, knn=knn_query, size = num_results)
+        result_docs = [hit['_source'] for hit in results['hits']['hits']] 
 
-        # Retrieve Results
-        print('[DEBUG] Retrieving Search Results...')
-        ms.fit(data_dict)
-        
-        results = ms.search( query = query,
-                            num_results = num_results)
-        response = [result['answer'] for result in results]
+        response = [result['answer'] for result in result_docs]
+
         print('\n\n[DEBUG] Retrieved results:', response)
         return response
     
@@ -75,7 +108,7 @@ class RAGPipeline:
         """
 
         prompt_template = """
-            You're a python assistant. 
+            You're a data science expert and assistant.
             Provide concise and complete answers to the questions based on the context given below.
             QUESTION: {question}
 
@@ -86,7 +119,7 @@ class RAGPipeline:
         prompt = prompt_template.format(question=query, response=response)
         return prompt
     
-    def generate_llm_response(self, prompt): 
+    def generate_response(self, prompt): 
         """
         Generates a response using the LLM based on the given prompt.
 
@@ -122,7 +155,7 @@ class RAGPipeline:
         
         return llm_response
     
-    def get_response(self,query, num_results=5):
+    def rag_pipeline(self,query, num_results=5, create_new_index=False):
         """
         Retrieves and generates a response for a given query.
 
@@ -134,7 +167,9 @@ class RAGPipeline:
             str: The generated response from the LLM.
         """
         data_dict = self.read_data()
-        results = self.retrieve_results(data_dict, query, num_results)
+        if create_new_index:
+            self.create_index(data_dict)
+        results = self.search(data_dict, query, num_results)
         prompt = self.generate_prompt(query, results)
-        llm_response = self.generate_llm_response(prompt)
+        llm_response = self.generate_response(prompt)
         return llm_response
