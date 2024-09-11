@@ -58,8 +58,9 @@ The performance of the RAG system is assessed through:
    - Developed using ChatGPT to establish a benchmark for evaluation.
 
 2. **Evaluation Metrics**:
-   - **Mean Reciprocal Rank (MRR)** and **Hit Rate** are calculated.
-   - Both metrics achieved an approximate score of 0.83, indicating high effectiveness in the retrieval and generation process.
+   - **Mean Reciprocal Rank (MRR)** and **Hit Rate** are calculated. 
+
+### Achieved a Hit Rate of 0.87 and an MRR of 0.85
 
 ## 🌐 Deployment
 
