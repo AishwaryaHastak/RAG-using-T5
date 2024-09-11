@@ -1,87 +1,131 @@
+# app.property
+ 
 import streamlit as st
+import time
+import uuid
+
 from src.vectorpipeline import VecSearchRAGPipeline
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from setup_db import Feedback, DATABASE_URL
+from src.espipeline import ElSearchRAGPipeline
+from setup_db import (
+    init_db,
+    save_conversation,
+    save_feedback,
+    get_recent_conversations,
+    get_feedback_stats,
+)
 
-# Database setup
-engine = create_engine(DATABASE_URL, echo=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Initialize the VecSearchRAGPipeline
-pipeline = VecSearchRAGPipeline()
-data_dict = []
-index_created = False
+def print_log(message):
+    print(message, flush=True)
 
-def index_data():
-    global index_created
-    st.session_state.index_status = "Reading data..."
-    data_dict = pipeline.read_data()
 
-    st.session_state.index_status = "Indexing started. Please wait for a while..."
-    pipeline.create_index(data_dict)
-    index_created = True
-    st.session_state.index_status = "Indexing completed!"
+def main():
+    print_log("Starting the Data Science Assistant application")
+    st.title("Course Assistant")
 
-def save_feedback(question, response, feedback):
-    db = SessionLocal()
-    try:
-        new_feedback = Feedback(question=question, response=response, feedback=feedback)
-        db.add(new_feedback)
-        db.commit()
-    except Exception as e:
-        st.error(f"Error saving feedback: {e}")
-        db.rollback()
-    finally:
-        db.close()
+    # Initialize the database
+    init_db()
+    # Session state initialization
+    if "conversation_id" not in st.session_state:
+        st.session_state.conversation_id = str(uuid.uuid4())
+        print_log(
+            f"New conversation started with ID: {st.session_state.conversation_id}"
+        )
+    if "count" not in st.session_state:
+        st.session_state.count = 0
+        print_log("Feedback count initialized to 0")
+        
+    # Search type selection
+    search_type = st.radio("Select search type:", ["Text", "Vector"])
+    print_log(f"User selected search type: {search_type}")
 
-# Streamlit app interface
-st.title('Vector Search and LLM Response')
-
-if 'index_status' not in st.session_state:
-    st.session_state.index_status = ""
-
-if st.session_state.index_status:
-    st.write(st.session_state.index_status)
-
-if st.button('Start Indexing'):
-    if not index_created:
-        with st.spinner('Generating embeddings, please wait...'):
-            index_data()
+    if search_type == "Text":
+        pipeline = ElSearchRAGPipeline()
     else:
-        st.write("Index already created!")
+        pipeline = VecSearchRAGPipeline()
 
-# Form for query submission
-with st.form(key='query_form'):
-    query = st.text_input("Enter your query")
-    submit_button = st.form_submit_button(label='Submit Query')
+    if st.button("Create Index"):
+        with st.spinner("Reading data/Generating vector embeddings..."):
+            print_log("Reading data...")
+            pipeline.read_data()
+        with st.spinner("Creating index..."):
+            print_log("Indexing data...")
+            pipeline.create_index(pipeline.data_dict)
+            st.success("Index created!")
 
-if submit_button:
-    if not query:
-        st.error('Please enter a query')
-    else:
-        st.write('Generating response...')
-        results = pipeline.search(data_dict, query, 3)
-        prompt = pipeline.generate_prompt(query, results)
-        llm_response = pipeline.generate_response(prompt)
-        st.write(f"Response: {llm_response}")
+    # User input
+    user_input = st.text_input("Enter your question:")
 
-        # Feedback Buttons with State Management
-        if 'feedback' not in st.session_state:
-            st.session_state.feedback = None
+    if st.button("Ask"):
+        print_log(f"User asked: '{user_input}'")
+        with st.spinner("Processing..."):
+            print_log(
+                f"Getting answer from assistant using {search_type} search"
+            )
+            start_time = time.time()
+            answer_data = pipeline.get_response(user_input)
+            end_time = time.time()
+            print_log(f"Answer received in {end_time - start_time:.2f} seconds")
+            st.success("Completed!")
+            st.write(answer_data)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button('👍', key='positive'):
-                st.session_state.feedback = 'positive'
-                st.write('Thank you for the positive feedback!')
-        with col2:
-            if st.button('👎', key='negative'):
-                st.session_state.feedback = 'negative'
-                st.write('Sorry to hear that. We appreciate your feedback!')
+            # Display monitoring information
 
-        if st.session_state.feedback:
-            st.write('Saving feedback...')
-            save_feedback(query, llm_response, st.session_state.feedback)
-            st.session_state.feedback = None
+            # Save conversation to database
+            print_log("Saving conversation to database")
+            save_conversation(
+                st.session_state.conversation_id, user_input, answer_data,
+            )
+            print_log("Conversation saved successfully")
+            # Generate a new conversation ID for next question
+            st.session_state.conversation_id = str(uuid.uuid4())
 
+    # Feedback buttons
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button('👍', key='positive'):
+            st.session_state.count += 1
+            print_log(
+                f"Positive feedback received. New count: {st.session_state.count}"
+            )
+            save_feedback(st.session_state.conversation_id, 1)
+            print_log("Positive feedback saved to database")
+            st.write('Thank you for the positive feedback!')
+    with col2:
+        if st.button('👎', key='negative'):
+            st.session_state.count -= 1
+            print_log(
+                f"Negative feedback received. New count: {st.session_state.count}"
+            )
+            save_feedback(st.session_state.conversation_id, -1)
+            print_log("Negative feedback saved to database")
+            st.write('Sorry to hear that. We appreciate your feedback!')
+
+    # st.write(f"Current count: {st.session_state.count}")
+
+    # Display recent conversations
+    st.subheader("Recent Conversations")
+    # relevance_filter = st.selectbox(
+    #     "Filter by relevance:", ["All", "RELEVANT", "PARTLY_RELEVANT", "NON_RELEVANT"]
+    # )
+    recent_conversations = get_recent_conversations(
+        limit=3
+    )
+    for conv in recent_conversations:
+        st.write(f"Q: {conv['question']}")
+        st.write(f"A: {conv['answer']}")
+        st.write("---")
+
+    # Display feedback stats
+    feedback_stats = get_feedback_stats()
+    st.subheader("Feedback Statistics")
+    st.write(f"Thumbs up: {feedback_stats['thumbs_up']}")
+    st.write(f"Thumbs down: {feedback_stats['thumbs_down']}")
+
+
+print_log("Streamlit app loop completed")
+
+
+if __name__ == "__main__":
+    print_log("Course Assistant application started")
+    main()
