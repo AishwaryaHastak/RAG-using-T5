@@ -74,5 +74,6 @@ A feedback mechanism is integrated to collect user feedback on the responses. Us
 
 ## Acknowledgements
 
-Detailed steps on how to use ElasticSearch in python
+Detailed steps on how to use ElasticSearch in Python:
+
 https://dylancastillo.co/posts/elasticseach-python.html#create-a-local-elasticsearch-cluster
