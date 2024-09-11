@@ -16,11 +16,9 @@ class VecSearchRAGPipeline:
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
         self.es = Elasticsearch("http://localhost:9200")
         self.emb_model = SentenceTransformer(embedding_model,truncate_dim=embedding_size) 
+        self.data_dict = None
 
     def read_data(self):
-        """
-        Reads data from csv file and converts it into list of dictionaries
-        """
         print('[DEBUG] Reading data...')
         # Read data into dataframe 
         df = pd.read_csv("src/data/data.csv").dropna()
@@ -35,7 +33,7 @@ class VecSearchRAGPipeline:
             data['answer_vector'] = self.emb_model.encode(data['answer'])
             data['question_vector'] = self.emb_model.encode(data['question'])
             vector_data_dict.append(data)
-        return vector_data_dict
+        self.data_dict = vector_data_dict
     
     def create_index(self, data_dict):
         print('\n\n[[DEBUG] Creating Index...')
@@ -155,7 +153,7 @@ class VecSearchRAGPipeline:
         
         return llm_response
     
-    def rag_pipeline(self,query, num_results=5, create_new_index=False):
+    def get_response(self,query, num_results=3, create_new_index=False):
         """
         Retrieves and generates a response for a given query.
 
@@ -166,10 +164,9 @@ class VecSearchRAGPipeline:
         Returns:
             str: The generated response from the LLM.
         """
-        data_dict = self.read_data()
         if create_new_index:
-            self.create_index(data_dict)
-        results = self.search(data_dict, query, num_results)
+            self.create_index(self.data_dict)
+        results = self.search(self.data_dict, query, num_results)
         prompt = self.generate_prompt(query, results)
         llm_response = self.generate_response(prompt)
         return llm_response

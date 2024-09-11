@@ -14,5 +14,5 @@ if __name__ == "__main__":
     query = [   "How to manage model versioning in Machine Learning?",
                 "What’s the trade-off between bias and variance?",
                 "What are some common challenges in deploying a RAG model in production and how can they be addressed?"]
-    response = pipeline.rag_pipeline(query[0],3, create_new_index = True)
+    response = pipeline.get_response(query[0],3, create_new_index = True)
     print(response)

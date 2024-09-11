@@ -1,5 +1,5 @@
 TASKS.txt
-src/train.csv
-src/data.csv
-book.txt
-book2text.ipynb
+feedback.db
+ml.json
+temp.ipynb
+database.db

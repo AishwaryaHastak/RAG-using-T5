@@ -114,7 +114,7 @@ class MiniSearchRAGPipeline:
         
         return llm_response
     
-    def rag_pipeline(self,query, num_results=5):
+    def get_response(self,query, num_results=3):
         """
         Retrieves and generates a response for a given query.
 

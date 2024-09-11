@@ -14,6 +14,7 @@ class ElSearchRAGPipeline:
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
         self.es = Elasticsearch("http://localhost:9200")
+        self.data_dict = None
 
     def read_data(self):
         """
@@ -21,11 +22,11 @@ class ElSearchRAGPipeline:
         """
         print('[DEBUG] Reading data...')
         # Read data into dataframe 
-        df = pd.read_csv("src/data/train.csv").dropna()
+        df = pd.read_csv("src/data/data.csv").dropna()
 
         # Convert dataframe to list of dictionaries
-        data_dict = df.to_dict(orient="records")
-        return data_dict
+        self.data_dict = df.to_dict(orient="records")
+        
     def create_index(self, data_dict):
         print('\n\n[[DEBUG] Creating Index...')
 
@@ -145,7 +146,7 @@ class ElSearchRAGPipeline:
         
         return llm_response
     
-    def rag_pipeline(self,query, num_results=5, create_new_index=False):
+    def get_response(self,query, num_results=3, create_new_index=False):
         """
         Retrieves and generates a response for a given query.
 
@@ -156,10 +157,9 @@ class ElSearchRAGPipeline:
         Returns:
             str: The generated response from the LLM.
         """
-        data_dict = self.read_data()
         if create_new_index:
-            self.create_index(data_dict)
-        results = self.search(data_dict, query, num_results)
+            self.create_index(self.data_dict)
+        results = self.search(self.data_dict, query, num_results)
         prompt = self.generate_prompt(query, results)
         llm_response = self.generate_response(prompt)
         return llm_response

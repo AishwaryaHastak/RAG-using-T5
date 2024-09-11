@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 __version__ = "1.0.0"
 
-REPO_NAME = "LLM-ZoomCamp"
+REPO_NAME = "RAG-using-T5"
 AUTHOR_USER_NAME = "AishwaryaHastak"
 SRC_REPO = "src"
 AUTHOR_EMAIL = "h4hastak@gmail.com"
