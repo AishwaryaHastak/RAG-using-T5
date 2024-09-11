@@ -2,6 +2,8 @@
 
 This project presents an end-to-end Retrieval-Augmented Generation (RAG) system specifically designed for handling questions and answers in the Data Science domain. The system integrates various advanced technologies for efficient retrieval and generation of responses.
 
+### 🔍📝👉 To learn more about RAGs, check out this [article](https://medium.com/@aishwaryahastak/understanding-the-roots-of-rags-7b77d26c3dca).
+
 ## 🛠️ Tools Used
 
 - **Python**: Programming language used for development.
