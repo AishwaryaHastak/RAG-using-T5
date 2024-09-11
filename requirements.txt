@@ -1,18 +1,10 @@
 elasticsearch==8.15.0 
-flask==3.0.3
-flask_socketio==5.3.7
 ipykernel==6.29.5
 ipython==8.18.1
-matplotlib
-numpy==1.26.4
 pandas==2.2.2 
-scikit-learn==1.5.1
-scipy==1.13.1
 sentencepiece==0.2.0
 sentence-transformers==3.0.1 
 streamlit
-sqlalchemy 
-sqlite3
-torch==2.4.0 
+sqlalchemy
 transformers==4.43.3
--e .
+# -e .
