@@ -21,7 +21,7 @@ def print_log(message):
 
 def main():
     print_log("Starting the Data Science Assistant application")
-    st.title("Course Assistant")
+    st.title("Data Science Assistant")
 
     # Initialize the database
     init_db()
