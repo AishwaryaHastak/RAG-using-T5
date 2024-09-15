@@ -17,3 +17,6 @@ model_name = 'google/flan-t5-small'
 # embedding_model = 'all-mpnet-base-v2'
 embedding_model = 'multi-qa-MiniLM-L6-cos-v1'
 embedding_size = 128
+
+# Path to the SQLite database file
+DATABASE_PATH = 'database.db'

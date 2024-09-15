@@ -2,6 +2,7 @@ elasticsearch==8.15.0
 ipykernel==6.29.5
 ipython==8.18.1
 pandas==2.2.2 
+seaborn
 sentencepiece==0.2.0
 sentence-transformers==3.0.1 
 streamlit

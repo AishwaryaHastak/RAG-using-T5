@@ -6,7 +6,7 @@ import uuid
 
 from src.vectorpipeline import VecSearchRAGPipeline
 from src.espipeline import ElSearchRAGPipeline
-from setup_db import (
+from src.setup_db import (
     init_db,
     save_conversation,
     save_feedback,

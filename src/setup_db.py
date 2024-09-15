@@ -2,9 +2,7 @@
 # This script initializes the SQLite database and creates necessary tables.
 
 import sqlite3
-
-# Path to the SQLite database file
-DATABASE_PATH = 'database.db'
+from src.constants import DATABASE_PATH
 
 def init_db():
     """Initialize the SQLite database with necessary tables."""

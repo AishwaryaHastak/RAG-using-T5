@@ -1,68 +1,55 @@
-# End-to-End RAG System for Data Science Q&A
+# Data Science Q&A Application
 
-This project presents an end-to-end Retrieval-Augmented Generation (RAG) system specifically designed for handling questions and answers in the Data Science domain. The system integrates various advanced technologies for efficient retrieval and generation of responses.
+This project is designed to provide precise answers to a broad range of Data Science and Machine Learning Lifecycle questions. Whether you're looking for explanations of concepts or advice on improving your ML models, this app is here to help! 🚀
 
-### 🔍📝👉 To learn more about RAGs, check out this [article](https://medium.com/@aishwaryahastak/understanding-the-roots-of-rags-7b77d26c3dca).
+## 📈Project Overview
 
-## 🛠️ Tools Used
+This application utilizes a dataset of over 600 question-answer pairs covering various Data Science topics. It offers concise and relevant responses to your queries, including use-case specific questions such as "My regression model is overfitting on data, how can I improve its performance?" 
 
-- **Python**: Programming language used for development.
-- **Streamlit**: Framework for building the interactive web application.
-- **Docker**: For containerizing the application and ensuring consistent deployment.
-- **SQLAlchemy**: ORM for database interactions.
-- **Flan-T5**: Language model from Hugging Face for response generation.
-- **Sentence Transformers**: For generating vector embeddings of documents.
-- **Elastic Search**: Scalable search engine for complex queries.
-- **ChatGPT**: Used for generating synthetic data and creating a ground truth dataset.
+## RAG Flow
 
-## 📊 Dataset
+The Retrieval-Augmented Generation (RAG) flow combines a knowledge base with a language model to deliver accurate responses:
 
-The project utilizes a custom dataset, `data.csv`, which comprises a diverse collection of question and answer pairs. These pairs were generated using ChatGPT-3.5 and cover a wide range of topics and domains within Data Science. The dataset includes:
+- **Knowledge Base:** Contains a Data Science Q&A dataset stored in `data.csv`.
+- **Language Model:** Uses **Flan-T5**, an open-source model from Google available on Hugging Face, for augmented response generation.
 
-- **Supervised Learning**
-- **Unsupervised Learning**
-- **Recommender Systems**
-- **Neural Networks**
+## 📊 Retrieval Evaluation
 
-Moreover, it addresses various aspects of the Machine Learning lifecycle such as:
+The performance of retrieval methods was assessed using `ground-truth.csv`. The following methods were evaluated:
 
-- **Model Development**
-- **Model Evaluation**
-- **Model Deployment**
+- **ElasticSearch:** 
+  - **Hit Rate:** 0.87 
+  - **Mean Reciprocal Rank (MRR):** 0.85
+  - Best performing retrieval method with combined Question-Answer vector embedding.
+  
+- **Minisearch:** 
+  - Competitive results but not as optimal as ElasticSearch.
 
-The dataset is designed to be comprehensive, ensuring coverage of both foundational and advanced topics, making it suitable for robust testing and evaluation of the RAG system.
+- **Hybrid Search:** 
+  - Did not achieve the best accuracy or performance compared to ElasticSearch.
 
-## 🔍 Retrieval Component
+Detailed results can be found in `evaluation.ipynb`. 
 
-The RAG system incorporates two methods for indexing and retrieving relevant documents:
+## 🔍 RAG Evaluation
 
-1. **Simple Search Algorithm**:
-   - Implemented in `minisearch.py`.
-   - Utilizes **TF-IDF** for document indexing.
-   - Employs **cosine similarity** to find and rank similar documents.
+The RAG pipeline was evaluated against the ground truth dataset using the cosine similarity metric. The system achieved a cosine similarity score of **0.8**, reflecting strong alignment with the expected results. 
 
-2. **Elastic Search**:
-   - Offers a scalable and sophisticated search engine solution for handling more complex queries and retrieval needs.
+![alt text](image.png)
 
-## ✨ Generation Component
+## 🖥️ User Interface
 
-For generating responses, the system uses the open-source **Flan-T5** model from the Hugging Face library. Flan-T5 is a state-of-the-art language model designed to generate coherent and contextually accurate responses based on the retrieved information.
+The application features a simple and intuitive UI built with **Streamlit**. Users can easily input queries and view responses through a straightforward interface. 
 
-## 🔄 Vector Search
+## Ingestion Pipeline
 
-Vector search is performed by generating embeddings of documents using the **Sentence Transformers** library. This approach allows for precise and efficient retrieval by comparing vector representations of documents.
-
-## 📈 Evaluation
-
-The performance of the RAG system is assessed through:
+A Python script handles the data ingestion process:
 
 1. **Ground Truth Dataset Creation**:
    - Developed using ChatGPT to establish a benchmark for evaluation.
 
 2. **Evaluation Metrics**:
-   - **Mean Reciprocal Rank (MRR)** and **Hit Rate** are calculated. 
-
-### Achieved a Hit Rate of 0.87 and an MRR of 0.85
+   - **Mean Reciprocal Rank (MRR)** and **Hit Rate** are calculated.
+   - Both metrics achieved an approximate score of 0.83, indicating high effectiveness in the retrieval and generation process.
 
 ## 🌐 Deployment
 
@@ -74,6 +61,5 @@ A feedback mechanism is integrated to collect user feedback on the responses. Us
 
 ## Acknowledgements
 
-Detailed steps on how to use ElasticSearch in Python:
-
+Detailed steps on how to use ElasticSearch in python
 https://dylancastillo.co/posts/elasticseach-python.html#create-a-local-elasticsearch-cluster
