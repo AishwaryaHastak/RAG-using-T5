@@ -8,9 +8,9 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false
     ports:
-      # - "9200:9200"
-      - "${ELASTIC_PORT:-9200}:9200"
-      - "9300:9300"
+      - "9200:9200"
+      # - "${ELASTIC_PORT:-9200}:9200"
+      # - "9300:9300"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
@@ -35,4 +35,5 @@ networks:
     driver: bridge
 
 volumes:
+  elasticsearch_data:  
   streamlit-db:

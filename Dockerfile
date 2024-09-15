@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir /app
 EXPOSE 8501
 
 # Initialize the database
-RUN python -c 'from setup_db import init_db; init_db()'
+RUN python -c 'from src.setup_db import init_db; init_db()'
 
 # Command to run the Streamlit application
 CMD ["streamlit", "run", "app.py"]
