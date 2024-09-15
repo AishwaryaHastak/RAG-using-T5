@@ -44,37 +44,22 @@ The application features a simple and intuitive UI built with **Streamlit**. Use
 
 A Python script handles the data ingestion process:
 
-1. Reads from `data.csv`.
-2. Creates vector embeddings.
-3. Indexes the data using **ElasticSearch**.
+1. **Ground Truth Dataset Creation**:
+   - Developed using ChatGPT to establish a benchmark for evaluation.
 
-## Monitoring and Feedback
+2. **Evaluation Metrics**:
+   - **Mean Reciprocal Rank (MRR)** and **Hit Rate** are calculated.
+   - Both metrics achieved an approximate score of 0.83, indicating high effectiveness in the retrieval and generation process.
 
-User feedback is collected via thumbs-up👍 and thumbs-down👎 buttons in the UI. This feedback is stored in a **SQLite database** and helps in improving the application based on user experiences. 
+## 🌐 Deployment
 
-## Containerization
+The system is deployed as a **Streamlit** application, providing an interactive user interface. The deployment is managed using **Docker**, ensuring consistency and scalability of the application.
 
-The application is containerized using **Docker** to simplify deployment. Run the following command to set up and start the application:
+## 👍 Feedback Mechanism
 
-## How to run this code
+A feedback mechanism is integrated to collect user feedback on the responses. Users can provide feedback using thumbs up 👍 or thumbs down 👎 buttons. Feedback is stored in an **SQL database**, which assists in ongoing model monitoring and improvement.
 
-1. clone the repository to your local machine:
-```bash
-git clone https://github.com/AishwaryaHastak/RAG-using-T5.git
-```
+## Acknowledgements
 
-2. Navigate to the Project Directory
-```
-cd RAG-using-T5
-```
-
-3. Build and start the application using Docker Compose
-```bash
-docker compose build
-docker-compose up
-```
-
-4. Once the application is up and running, open your web browser and navigate to:
-```
-http://localhost:8501
-```
+Detailed steps on how to use ElasticSearch in python
+https://dylancastillo.co/posts/elasticseach-python.html#create-a-local-elasticsearch-cluster
