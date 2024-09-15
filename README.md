@@ -2,9 +2,11 @@
 
 This project is designed to provide precise answers to a broad range of Data Science and Machine Learning Lifecycle questions. Whether you're looking for explanations of concepts or advice on improving your ML models, this app is here to help! 🚀
 
+### 🔍📝👉 To learn more about RAGs, check out this [article](https://medium.com/@aishwaryahastak/understanding-the-roots-of-rags-7b77d26c3dca).
+
 ## 📈Project Overview
 
-This application utilizes a dataset of over 600 question-answer pairs covering various Data Science topics. It offers concise and relevant responses to your queries, including use-case specific questions such as "My regression model is overfitting on data, how can I improve its performance?" 
+This application utilizes a dataset of over 600 question-answer pairs covering various Data Science topics. It offers concise and relevant responses to your queries, including use-case-specific questions such as "My regression model is overfitting on data, how can I improve its performance?" 
 
 ## RAG Flow
 
@@ -59,7 +61,11 @@ The system is deployed as a **Streamlit** application, providing an interactive 
 
 A feedback mechanism is integrated to collect user feedback on the responses. Users can provide feedback using thumbs up 👍 or thumbs down 👎 buttons. Feedback is stored in an **SQL database**, which assists in ongoing model monitoring and improvement.
 
+![image](https://github.com/user-attachments/assets/14838151-e31d-4a7b-85b6-b7aee29dfcc1)
+
+
 ## Acknowledgements
 
-Detailed steps on how to use ElasticSearch in python
+Detailed steps on how to use ElasticSearch in Python:
+
 https://dylancastillo.co/posts/elasticseach-python.html#create-a-local-elasticsearch-cluster
