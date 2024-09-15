@@ -50,10 +50,6 @@ The Python script `vectorpipeline.py`'s function read_data handles the data inge
 2. Creates vector embeddings.
 3. Indexes the data using **ElasticSearch**.
 
-## 🌐 Deployment
-
-The system is deployed as a **Streamlit** application, providing an interactive user interface. The deployment is managed using **Docker**, ensuring consistency and scalability of the application.
-
 ## Monitoring Feedback and Containerization
 
 User feedback is collected via thumbs-up👍 and thumbs-down👎 buttons in the UI. This feedback is stored in a **SQLite database** and helps in improving the application based on user experiences. The application is containerized using **Docker** to simplify deployment.
