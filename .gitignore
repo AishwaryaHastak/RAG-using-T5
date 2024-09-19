@@ -4,3 +4,5 @@ ml.json
 temp.ipynb
 database.db
 ground_truth_id.ipynb
+src/__pycache__/
+__pycache__/
