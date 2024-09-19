@@ -13,6 +13,7 @@ class ElSearchRAGPipeline:
         self.response = None
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
+        # self.es = Elasticsearch("http://elasticsearch:9200")
         self.es = Elasticsearch("http://localhost:9200")
         self.data_dict = None
 
@@ -44,7 +45,7 @@ class ElSearchRAGPipeline:
         # Add Data to Index using index()
         print('\n\n[[DEBUG] Adding data to index...')
         # Considering only the first 100 rows for now
-        for i in tqdm(range(0,100)):
+        for i in tqdm(range(len(data_dict))):
             row = data_dict[i]
             self.es.index(index=index_name, id=i, document=row)
 

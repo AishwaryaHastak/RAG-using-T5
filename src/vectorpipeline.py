@@ -14,8 +14,8 @@ class VecSearchRAGPipeline:
         self.response = None
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
-        # self.es = Elasticsearch("http://localhost:9200")
-        self.es = Elasticsearch("http://elasticsearch:9200")
+        self.es = Elasticsearch("http://localhost:9200")
+        # self.es = Elasticsearch("http://elasticsearch:9200")
         self.emb_model = SentenceTransformer(embedding_model,truncate_dim=embedding_size) 
         self.data_dict = None
 
@@ -32,8 +32,6 @@ class VecSearchRAGPipeline:
         vector_data_dict = []
         for data in tqdm(data_dict):
             question_answer = data['question'] + ' ' + data['answer']
-            data['answer_vector'] = self.emb_model.encode(data['answer'])
-            data['question_vector'] = self.emb_model.encode(data['question'])
             data['question_answer_vector'] = self.emb_model.encode(question_answer)
             vector_data_dict.append(data)
         self.data_dict = vector_data_dict
@@ -48,9 +46,7 @@ class VecSearchRAGPipeline:
             "mappings": {
                 "properties": {
                 "question": {"type": "text"},
-                "answer": {"type": "text"},
-                "answer_vector": {"type": "dense_vector", "dims": embedding_size, "index": True, "similarity": "cosine"},
-                "question_vector": {"type": "dense_vector", "dims": embedding_size, "index": True, "similarity": "cosine"},
+                "answer": {"type": "text"}, 
                 "question_answer_vector": {"type": "dense_vector", "dims": embedding_size, "index": True, "similarity": "cosine"},
                 }
             }
