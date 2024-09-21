@@ -1,57 +1,72 @@
-# espipeline.py
+# vectorpipeline.py
 
+import os
 import pandas as pd
-from src import minisearch
-from elasticsearch import Elasticsearch, helpers
+from elasticsearch import Elasticsearch
 from tqdm import tqdm
 from transformers import T5Tokenizer, T5ForConditionalGeneration
-from src.constants import model_name,index_name
+from src.constants import model_name,index_name, embedding_model, embedding_size
+from sentence_transformers import SentenceTransformer
 
-class ElSearchRAGPipeline:
+class VecSearchRAGPipeline:
     def __init__(self): 
         self.query = None
         self.response = None
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
-        # self.es = Elasticsearch("http://elasticsearch:9200")
         self.es = Elasticsearch("http://localhost:9200")
+        # self.es = Elasticsearch("http://elasticsearch:9200")
+        self.emb_model = SentenceTransformer(embedding_model,truncate_dim=embedding_size) 
         self.data_dict = None
 
     def read_data(self):
-        """
-        Reads data from csv file and converts it into list of dictionaries
-        """
         print('[DEBUG] Reading data...')
         # Read data into dataframe 
-        df = pd.read_csv("src/data/data.csv").dropna()
+        data_file_path = os.path.join('data', 'data.csv')
+        df = pd.read_csv(data_file_path).dropna()
 
         # Convert dataframe to list of dictionaries
-        self.data_dict = df.to_dict(orient="records")
-        
-    def create_index(self, data_dict):
-        print('\n\n[[DEBUG] Creating Index...')
+        data_dict = df.to_dict(orient="records")
 
-        mappings = {
+        print('[DEBUG] Generating vector embeddings...')
+        # Add answer and question vector embeddings
+        vector_data_dict = []
+        for data in tqdm(data_dict):
+            question_answer = data['question'] + ' ' + data['answer']
+            data['question_answer_vector'] = self.emb_model.encode(question_answer)
+            vector_data_dict.append(data)
+        self.data_dict = vector_data_dict
+    
+    def create_index(self):
+        print('\n\n[[DEBUG] Creating Index...')
+        index_settings={
+            "settings": {
+                    "number_of_shards": 1,
+                    "number_of_replicas": 0
+            },
+            "mappings": {
                 "properties": {
-                    "question": {"type": "text"},
-                    "answer": {"type": "text"},
+                "question": {"type": "text"},
+                "answer": {"type": "text"}, 
+                "topic": {"type": "text"}, 
+                "question_answer_vector": {"type": "dense_vector", "dims": embedding_size, "index": True, "similarity": "cosine"},
+                }
             }
         }
         
         # Create Index and delete if it already exists
         self.es.indices.delete(index=index_name, ignore_unavailable=True)
-        self.es.indices.create(index=index_name, mappings=mappings)
+        self.es.indices.create(index=index_name, body = index_settings)
 
         # Add Data to Index using index()
         print('\n\n[[DEBUG] Adding data to index...')
-        # Considering only the first 100 rows for now
-        for i in tqdm(range(len(data_dict))):
-            row = data_dict[i]
+        for i in tqdm(range(len(self.data_dict))):
+            row = self.data_dict[i]
             self.es.index(index=index_name, id=i, document=row)
 
         # helpers.bulk(es, data_dict)
 
-    def search(self, data_dict, query, num_results):
+    def search(self, query, num_results):
         """
         Retrieves results from the index based on the query.
 
@@ -65,27 +80,25 @@ class ElSearchRAGPipeline:
         """
         # Retrieve Search Results
         print('\n\n[[DEBUG] Retrieving Search Results...') 
-        results = self.es.search(
-            index=index_name,
-            size = num_results,
-            query={
-                    "bool": {
-                        "must": {
-                            "multi_match": {
-                                "query": query,
-                                "fields": ["question^3", "answer", "title"],
-                                "type": "best_fields",
-                            }
-                        },
-                    },
-                },
-        )
+        query_vector = self.emb_model.encode(query)
+        knn_query = {
+            "field": "question_answer_vector",
+            "query_vector": query_vector,
+            "k": num_results,
+            "num_candidates": 5
+        }
+
+        results = self.es.search(index=index_name, knn=knn_query, size = num_results)
+
+        time_taken = results['took']
+        relevance_score = results['hits']['max_score']
+        total_hits = results['hits']['total']['value']
+        topic = results['hits']['hits'][0]['_source']['topic']
         result_docs = [hit['_source'] for hit in results['hits']['hits']] 
 
         response = [result['answer'] for result in result_docs]
-
-        print('\n\n[DEBUG] Retrieved results:', response)
-        return response
+ 
+        return response, time_taken, relevance_score, total_hits, topic
     
     def generate_prompt(self, query, response):
         """
@@ -100,7 +113,7 @@ class ElSearchRAGPipeline:
         """
 
         prompt_template = """
-            You're a data science expert. 
+            You're a data science expert and assistant.
             Provide concise and complete answers to the questions based on the context given below.
             QUESTION: {question}
 
@@ -160,7 +173,7 @@ class ElSearchRAGPipeline:
         """
         if create_new_index:
             self.create_index(self.data_dict)
-        results = self.search(self.data_dict, query, num_results)
+        results, time_taken, total_hits, relevance_score, topic  = self.search(query, num_results)
         prompt = self.generate_prompt(query, results)
         llm_response = self.generate_response(prompt)
-        return llm_response
+        return llm_response, time_taken, total_hits, relevance_score , topic

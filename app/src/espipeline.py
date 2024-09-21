@@ -1,16 +1,21 @@
-# mspipeline.py
+# espipeline.py
 
-import pandas as pd
-from src import minisearch
+import os
+import pandas as pd 
+from elasticsearch import Elasticsearch 
+from tqdm import tqdm
 from transformers import T5Tokenizer, T5ForConditionalGeneration
-from src.constants import dataset_name, keyword_fields, text_fields, model_name
+from src.constants import model_name,index_name
 
-class MiniSearchRAGPipeline:
+class ElSearchRAGPipeline:
     def __init__(self): 
         self.query = None
         self.response = None
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
-        self.model = T5ForConditionalGeneration.from_pretrained(model_name) 
+        self.model = T5ForConditionalGeneration.from_pretrained(model_name)
+        self.es = Elasticsearch("http://elasticsearch:9200")
+        # self.es = Elasticsearch("http://localhost:9200")
+        self.data_dict = None
 
     def read_data(self):
         """
@@ -18,13 +23,36 @@ class MiniSearchRAGPipeline:
         """
         print('[DEBUG] Reading data...')
         # Read data into dataframe 
-        df = pd.read_csv("src/data/train.csv").dropna()
+        data_file_path = os.path.join('data', 'data.csv')
+        df = pd.read_csv(data_file_path).dropna()
 
         # Convert dataframe to list of dictionaries
-        data_dict = df.to_dict(orient="records")
-        return data_dict
-    
-    def search(self, data_dict, query, num_results):
+        self.data_dict = df.to_dict(orient="records")
+        
+    def create_index(self):
+        print('\n\n[[DEBUG] Creating Index...')
+
+        mappings = {
+                "properties": {
+                    "question": {"type": "text"},
+                    "answer": {"type": "text"},
+            }
+        }
+        
+        # Create Index and delete if it already exists
+        self.es.indices.delete(index=index_name, ignore_unavailable=True)
+        self.es.indices.create(index=index_name, mappings=mappings)
+
+        # Add Data to Index using index()
+        print('\n\n[[DEBUG] Adding data to index...')
+        # Considering only the first 100 rows for now
+        for i in tqdm(range(len(self.data_dict))):
+            row = self.data_dict[i]
+            self.es.index(index=index_name, id=i, document=row)
+
+        # helpers.bulk(es, data_dict)
+
+    def search(self, query, num_results=3):
         """
         Retrieves results from the index based on the query.
 
@@ -36,23 +64,36 @@ class MiniSearchRAGPipeline:
         Returns:
             list of str: List of results matching the search criteria, ranked by relevance.
         """
-        
-        print('[DEBUG] Creating Index...')
-        # Create Index
-        ms = minisearch.Index(
-            text_fields=text_fields,
-            # keyword_fields=keyword_fields,
+        # Retrieve Search Results
+        print('\n\n[[DEBUG] Retrieving Search Results...') 
+        results = self.es.search(
+            index=index_name,
+            size = num_results,
+            query={
+                    "bool": {
+                        "must": {
+                            "multi_match": {
+                                "query": query,
+                                "fields": ["question^3", "answer", "topic"],
+                                "type": "best_fields",
+                            }
+                        },
+                    },
+                },
         )
 
-        # Retrieve Results
-        print('[DEBUG] Retrieving Search Results...')
-        ms.fit(data_dict)
-        
-        results = ms.search( query = query,
-                            num_results = num_results)
-        response = [result['answer'] for result in results]
-        print('\n\n[DEBUG] Retrieved results:', response)
-        return response
+        time_taken = results['took']
+        relevance_score = results['hits']['max_score']
+        total_hits = results['hits']['total']['value']
+        topic = results['hits']['hits'][0]['_source']['topic']
+
+        print('\n\n[DEBUG] Retrieved results:', time_taken, relevance_score, total_hits)
+        result_docs = [hit['_source'] for hit in results['hits']['hits']] 
+
+        response = [result['answer'] for result in result_docs]
+
+        # print('\n\n[DEBUG] Retrieved results:', response)
+        return response, time_taken, total_hits, relevance_score, topic
     
     def generate_prompt(self, query, response):
         """
@@ -67,7 +108,7 @@ class MiniSearchRAGPipeline:
         """
 
         prompt_template = """
-            You're a data science expert.
+            You're a data science expert. 
             Provide concise and complete answers to the questions based on the context given below.
             QUESTION: {question}
 
@@ -114,7 +155,7 @@ class MiniSearchRAGPipeline:
         
         return llm_response
     
-    def get_response(self,query, num_results=3):
+    def get_response(self,query, num_results=3, create_new_index=False):
         """
         Retrieves and generates a response for a given query.
 
@@ -125,8 +166,9 @@ class MiniSearchRAGPipeline:
         Returns:
             str: The generated response from the LLM.
         """
-        data_dict = self.read_data()
-        results = self.search(data_dict, query, num_results)
+        if create_new_index:
+            self.create_index()
+        results, time_taken, total_hits, relevance_score, topic = self.search(query, num_results)
         prompt = self.generate_prompt(query, results)
         llm_response = self.generate_response(prompt)
-        return llm_response
+        return llm_response, time_taken, total_hits, relevance_score, topic

@@ -1,4 +1,5 @@
 # app.py
+# app.py
  
 import streamlit as st
 import time
@@ -6,7 +7,7 @@ import uuid
 
 from src.vectorpipeline import VecSearchRAGPipeline
 from src.espipeline import ElSearchRAGPipeline
-from src.setup_db import (
+from src.db import (
     init_db,
     save_conversation,
     save_feedback,
@@ -27,14 +28,7 @@ def main():
     
     # Check if the index has been created already
     text_index_created = st.session_state.get("text_index_created", False)
-    vec_index_created = st.session_state.get("vec_index_created", False)
-
-    # Session state initialization
-    if "conversation_id" not in st.session_state:
-        st.session_state.conversation_id = str(uuid.uuid4())
-        print_log(
-            f"New conversation started with ID: {st.session_state.conversation_id}"
-        )
+    vec_index_created = st.session_state.get("vec_index_created", False) 
     if "count" not in st.session_state:
         st.session_state.count = 0
         print_log("Feedback count initialized to 0")
@@ -47,24 +41,24 @@ def main():
         pipeline = ElSearchRAGPipeline()
         # Automatically create index if not already created
         if not text_index_created:
-            with st.spinner("Generating vector embeddings..."):
-                print_log("Generating vector embeddings...")
+            with st.spinner("Reading data..."):
+                print_log("Reading data...")
                 pipeline.read_data()
             with st.spinner("Creating index..."):
                 print_log("Indexing data...")
-                pipeline.create_index(pipeline.data_dict)
+                pipeline.create_index()
                 st.success("Index created!")
                 st.session_state.text_index_created = True  
     else:
         pipeline = VecSearchRAGPipeline()
         # Automatically create vector index if not already created
         if not vec_index_created:
-            with st.spinner("Reading data..."):
-                print_log("Reading data...")
+            with st.spinner("Generating vector embeddings..."):
+                print_log("Generating vector embeddings...")
                 pipeline.read_data()
             with st.spinner("Creating index..."):
                 print_log("Indexing data...")
-                pipeline.create_index(pipeline.data_dict)
+                pipeline.create_index()
                 st.success("Index created!")
                 st.session_state.vec_index_created = True   
 
@@ -73,12 +67,13 @@ def main():
 
     if st.button("Ask"):
         print_log(f"User asked: '{user_input}'")
+        st.session_state.conversation_id = str(uuid.uuid4())
         with st.spinner("Processing..."):
             print_log(
                 f"Getting answer from assistant using {search_type} search"
             )
             start_time = time.time()
-            answer_data = pipeline.get_response(user_input)
+            answer_data, time_taken, total_hits, relevance_score, topic = pipeline.get_response(user_input)
             end_time = time.time()
             print_log(f"Answer received in {end_time - start_time:.2f} seconds")
             st.success("Completed!")
@@ -87,10 +82,16 @@ def main():
             # Save conversation to database
             print_log("Saving conversation to database")
             save_conversation(
-                st.session_state.conversation_id, user_input, answer_data,
+                st.session_state.conversation_id, 
+                user_input, 
+                answer_data, 
+                time_taken, 
+                total_hits, 
+                relevance_score,
+                topic,
+                search_type
             )
-            print_log("Conversation saved successfully")
-            st.session_state.conversation_id = str(uuid.uuid4())
+            print_log("Conversation saved successfully") 
 
     # Feedback buttons
     col1, col2 = st.columns(2)

@@ -1,69 +1,31 @@
-# vectorpipeline.py
+# mspipeline.py
 
+import os
 import pandas as pd
 from src import minisearch
-from elasticsearch import Elasticsearch, helpers
-from tqdm import tqdm
 from transformers import T5Tokenizer, T5ForConditionalGeneration
-from src.constants import model_name,index_name, embedding_model, embedding_size
-from sentence_transformers import SentenceTransformer
+from src.constants import dataset_name, keyword_fields, text_fields, model_name
 
-class VecSearchRAGPipeline:
+class MiniSearchRAGPipeline:
     def __init__(self): 
         self.query = None
         self.response = None
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
-        self.model = T5ForConditionalGeneration.from_pretrained(model_name)
-        self.es = Elasticsearch("http://localhost:9200")
-        # self.es = Elasticsearch("http://elasticsearch:9200")
-        self.emb_model = SentenceTransformer(embedding_model,truncate_dim=embedding_size) 
-        self.data_dict = None
+        self.model = T5ForConditionalGeneration.from_pretrained(model_name) 
 
     def read_data(self):
+        """
+        Reads data from csv file and converts it into list of dictionaries
+        """
         print('[DEBUG] Reading data...')
         # Read data into dataframe 
-        df = pd.read_csv("src/data/data.csv").dropna()
+        data_file_path = os.path.join('data', 'data.csv')
+        df = pd.read_csv(data_file_path).dropna()
 
         # Convert dataframe to list of dictionaries
         data_dict = df.to_dict(orient="records")
-
-        print('[DEBUG] Generating vector embeddings...')
-        # Add answer and question vector embeddings
-        vector_data_dict = []
-        for data in tqdm(data_dict):
-            question_answer = data['question'] + ' ' + data['answer']
-            data['question_answer_vector'] = self.emb_model.encode(question_answer)
-            vector_data_dict.append(data)
-        self.data_dict = vector_data_dict
+        return data_dict
     
-    def create_index(self, data_dict):
-        print('\n\n[[DEBUG] Creating Index...')
-        index_settings={
-            "settings": {
-                    "number_of_shards": 1,
-                    "number_of_replicas": 0
-            },
-            "mappings": {
-                "properties": {
-                "question": {"type": "text"},
-                "answer": {"type": "text"}, 
-                "question_answer_vector": {"type": "dense_vector", "dims": embedding_size, "index": True, "similarity": "cosine"},
-                }
-            }
-        }
-        
-        # Create Index and delete if it already exists
-        self.es.indices.delete(index=index_name, ignore_unavailable=True)
-        self.es.indices.create(index=index_name, body = index_settings)
-
-        # Add Data to Index using index()
-        print('\n\n[[DEBUG] Adding data to index...')
-        for i in tqdm(range(len(data_dict))):
-            row = data_dict[i]
-            self.es.index(index=index_name, id=i, document=row)
-
-        # helpers.bulk(es, data_dict)
-
     def search(self, data_dict, query, num_results):
         """
         Retrieves results from the index based on the query.
@@ -76,20 +38,21 @@ class VecSearchRAGPipeline:
         Returns:
             list of str: List of results matching the search criteria, ranked by relevance.
         """
-        # Retrieve Search Results
-        print('\n\n[[DEBUG] Retrieving Search Results...') 
-        query_vector = self.emb_model.encode(query)
-        knn_query = {
-            "field": "question_answer_vector",
-            "query_vector": query_vector,
-            "k": num_results,
-            "num_candidates": 5
-        }
-        results = self.es.search(index=index_name, knn=knn_query, size = num_results)
-        result_docs = [hit['_source'] for hit in results['hits']['hits']] 
+        
+        print('[DEBUG] Creating Index...')
+        # Create Index
+        ms = minisearch.Index(
+            text_fields=text_fields,
+            # keyword_fields=keyword_fields,
+        )
 
-        response = [result['answer'] for result in result_docs]
-
+        # Retrieve Results
+        print('[DEBUG] Retrieving Search Results...')
+        ms.fit(data_dict)
+        
+        results = ms.search( query = query,
+                            num_results = num_results)
+        response = [result['answer'] for result in results]
         print('\n\n[DEBUG] Retrieved results:', response)
         return response
     
@@ -106,7 +69,7 @@ class VecSearchRAGPipeline:
         """
 
         prompt_template = """
-            You're a data science expert and assistant.
+            You're a data science expert.
             Provide concise and complete answers to the questions based on the context given below.
             QUESTION: {question}
 
@@ -153,7 +116,7 @@ class VecSearchRAGPipeline:
         
         return llm_response
     
-    def get_response(self,query, num_results=3, create_new_index=False):
+    def get_response(self,query, num_results=3):
         """
         Retrieves and generates a response for a given query.
 
@@ -164,9 +127,8 @@ class VecSearchRAGPipeline:
         Returns:
             str: The generated response from the LLM.
         """
-        if create_new_index:
-            self.create_index(self.data_dict)
-        results = self.search(self.data_dict, query, num_results)
+        data_dict = self.read_data()
+        results = self.search(data_dict, query, num_results)
         prompt = self.generate_prompt(query, results)
         llm_response = self.generate_response(prompt)
         return llm_response
