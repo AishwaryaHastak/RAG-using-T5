@@ -48,6 +48,10 @@ The RAG pipeline was evaluated against the ground truth dataset using the cosine
 
 The application features a simple and intuitive UI built with **Streamlit**. Users can easily input queries and view responses through a straightforward interface. 
 
+![image](https://github.com/user-attachments/assets/a62fdc48-2c3a-4560-9236-18c7fc52511d)
+
+![image](https://github.com/user-attachments/assets/35cdf80f-272c-4415-8ea6-1ddf30deb70e)
+
 ## Ingestion Pipeline
 
 The Python script `vectorpipeline.py`'s function read_data handles the data ingestion process:
@@ -96,11 +100,7 @@ docker-compose up -d
 ```
 http://localhost:8501
 ```
-
 ---
-
-![image](https://github.com/user-attachments/assets/a62fdc48-2c3a-4560-9236-18c7fc52511d)
-
 
 ## Acknowledgements
 
