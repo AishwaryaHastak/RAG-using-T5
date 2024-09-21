@@ -14,8 +14,8 @@ class VecSearchRAGPipeline:
         self.response = None
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
-        # self.es = Elasticsearch("http://localhost:9200")
-        self.es = Elasticsearch("http://elasticsearch:9200")
+        self.es = Elasticsearch("http://localhost:9200")
+        # self.es = Elasticsearch("http://elasticsearch:9200")
         self.emb_model = SentenceTransformer(embedding_model,truncate_dim=embedding_size) 
         self.data_dict = None
 
