@@ -4,6 +4,7 @@ This project is designed to provide precise answers to a broad range of Data Sci
 
 The application utilizes tools like ElasticSearch, Streamlit, PostgreSQL, Grafana, and Docker.
 
+![DS_Assistant_Diagram](https://github.com/user-attachments/assets/51a5ef39-3616-4867-80be-2d45f283c8e7)
 
 
 ### 🔍📝👉 To learn more about RAGs, check out this [article](https://medium.com/@aishwaryahastak/understanding-the-roots-of-rags-7b77d26c3dca).
@@ -40,6 +41,8 @@ Detailed results can be found in the notebooks in the `evaluation` folder.
 
 The RAG pipeline was evaluated against the ground truth dataset using the cosine similarity metric. The system achieved a cosine similarity score of **0.8**, reflecting strong alignment with the expected results. 
 
+![image](https://github.com/user-attachments/assets/4120dc26-6a43-4a3a-b2fe-e5ec5de7cb5a)
+
 
 ## 🖥️ User Interface
 
@@ -57,6 +60,14 @@ The Python script `vectorpipeline.py`'s function read_data handles the data inge
 
 User feedback is collected via thumbs-up👍 and thumbs-down👎 buttons in the UI. This feedback is stored in a **PostgreSQL database** and helps in improving the application based on user experiences. The application is containerized using **Docker** to simplify deployment.
 
+A dashboard was created on **Grafana** to analyze the data.
+
+![image](https://github.com/user-attachments/assets/e4b8d943-7e45-4fce-8d81-b5bad15adb1e)
+
+- The model performs well on questions related to Supervised Learning.
+- Vector-based search is about **4x faster** than text-based search.
+
+
 ## How to run this code
 
 1. clone the repository to your local machine:
@@ -64,7 +75,7 @@ User feedback is collected via thumbs-up👍 and thumbs-down👎 buttons in the 
 git clone https://github.com/AishwaryaHastak/RAG-using-T5.git
 ```
 
-2. Navigate to the Project Directory and update .env file with 
+2. Navigate to the Project Directory
 ```
 cd app
 ```
@@ -86,7 +97,10 @@ docker-compose up -d
 http://localhost:8501
 ```
 
-![image](https://github.com/user-attachments/assets/14838151-e31d-4a7b-85b6-b7aee29dfcc1)
+---
+
+![image](https://github.com/user-attachments/assets/a62fdc48-2c3a-4560-9236-18c7fc52511d)
+
 
 ## Acknowledgements
 
