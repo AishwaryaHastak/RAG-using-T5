@@ -11,7 +11,6 @@ WORKDIR /app
 # Copy the requirements file
 COPY requirements.txt /app/
 COPY setup.py /app/
-COPY README.md /app/
 
 # Install the dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -24,9 +23,6 @@ RUN pip install --no-cache-dir /app
 
 # Expose the port Streamlit will run on
 EXPOSE 8501
-
-# # Initialize the database
-# RUN python -c 'from src.db import init_db; init_db()'
 
 # Command to run the Streamlit application
 CMD ["streamlit", "run", "app.py"]

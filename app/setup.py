@@ -1,9 +1,5 @@
 import setuptools
 
-with open("README.md", "r", encoding="utf-8") as f:
-    long_description = f.read()
-
-
 __version__ = "1.0.0"
 
 REPO_NAME = "RAG-using-T5"
@@ -11,15 +7,12 @@ AUTHOR_USER_NAME = "AishwaryaHastak"
 SRC_REPO = "src"
 AUTHOR_EMAIL = "h4hastak@gmail.com"
 
-
-
 setuptools.setup(
     name=SRC_REPO,
     version=__version__,
     author=AUTHOR_USER_NAME,
     author_email=AUTHOR_EMAIL,
-    description="RAG Pipeline Implementation",
-    long_description=long_description,
+    description="RAG Pipeline Implementation", 
     long_description_content="text/markdown",
     url=f"https://github.com/{AUTHOR_USER_NAME}/{REPO_NAME}",
     project_urls={
