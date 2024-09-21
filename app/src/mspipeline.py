@@ -1,21 +1,17 @@
-# espipeline.py
+# mspipeline.py
 
+import os
 import pandas as pd
 from src import minisearch
-from elasticsearch import Elasticsearch, helpers
-from tqdm import tqdm
 from transformers import T5Tokenizer, T5ForConditionalGeneration
-from src.constants import model_name,index_name
+from src.constants import dataset_name, keyword_fields, text_fields, model_name
 
-class ElSearchRAGPipeline:
+class MiniSearchRAGPipeline:
     def __init__(self): 
         self.query = None
         self.response = None
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
-        self.model = T5ForConditionalGeneration.from_pretrained(model_name)
-        # self.es = Elasticsearch("http://elasticsearch:9200")
-        self.es = Elasticsearch("http://localhost:9200")
-        self.data_dict = None
+        self.model = T5ForConditionalGeneration.from_pretrained(model_name) 
 
     def read_data(self):
         """
@@ -23,34 +19,13 @@ class ElSearchRAGPipeline:
         """
         print('[DEBUG] Reading data...')
         # Read data into dataframe 
-        df = pd.read_csv("src/data/data.csv").dropna()
+        data_file_path = os.path.join('data', 'data.csv')
+        df = pd.read_csv(data_file_path).dropna()
 
         # Convert dataframe to list of dictionaries
-        self.data_dict = df.to_dict(orient="records")
-        
-    def create_index(self, data_dict):
-        print('\n\n[[DEBUG] Creating Index...')
-
-        mappings = {
-                "properties": {
-                    "question": {"type": "text"},
-                    "answer": {"type": "text"},
-            }
-        }
-        
-        # Create Index and delete if it already exists
-        self.es.indices.delete(index=index_name, ignore_unavailable=True)
-        self.es.indices.create(index=index_name, mappings=mappings)
-
-        # Add Data to Index using index()
-        print('\n\n[[DEBUG] Adding data to index...')
-        # Considering only the first 100 rows for now
-        for i in tqdm(range(len(data_dict))):
-            row = data_dict[i]
-            self.es.index(index=index_name, id=i, document=row)
-
-        # helpers.bulk(es, data_dict)
-
+        data_dict = df.to_dict(orient="records")
+        return data_dict
+    
     def search(self, data_dict, query, num_results):
         """
         Retrieves results from the index based on the query.
@@ -63,27 +38,21 @@ class ElSearchRAGPipeline:
         Returns:
             list of str: List of results matching the search criteria, ranked by relevance.
         """
-        # Retrieve Search Results
-        print('\n\n[[DEBUG] Retrieving Search Results...') 
-        results = self.es.search(
-            index=index_name,
-            size = num_results,
-            query={
-                    "bool": {
-                        "must": {
-                            "multi_match": {
-                                "query": query,
-                                "fields": ["question^3", "answer", "title"],
-                                "type": "best_fields",
-                            }
-                        },
-                    },
-                },
+        
+        print('[DEBUG] Creating Index...')
+        # Create Index
+        ms = minisearch.Index(
+            text_fields=text_fields,
+            # keyword_fields=keyword_fields,
         )
-        result_docs = [hit['_source'] for hit in results['hits']['hits']] 
 
-        response = [result['answer'] for result in result_docs]
-
+        # Retrieve Results
+        print('[DEBUG] Retrieving Search Results...')
+        ms.fit(data_dict)
+        
+        results = ms.search( query = query,
+                            num_results = num_results)
+        response = [result['answer'] for result in results]
         print('\n\n[DEBUG] Retrieved results:', response)
         return response
     
@@ -100,7 +69,7 @@ class ElSearchRAGPipeline:
         """
 
         prompt_template = """
-            You're a data science expert. 
+            You're a data science expert.
             Provide concise and complete answers to the questions based on the context given below.
             QUESTION: {question}
 
@@ -147,7 +116,7 @@ class ElSearchRAGPipeline:
         
         return llm_response
     
-    def get_response(self,query, num_results=3, create_new_index=False):
+    def get_response(self,query, num_results=3):
         """
         Retrieves and generates a response for a given query.
 
@@ -158,9 +127,8 @@ class ElSearchRAGPipeline:
         Returns:
             str: The generated response from the LLM.
         """
-        if create_new_index:
-            self.create_index(self.data_dict)
-        results = self.search(self.data_dict, query, num_results)
+        data_dict = self.read_data()
+        results = self.search(data_dict, query, num_results)
         prompt = self.generate_prompt(query, results)
         llm_response = self.generate_response(prompt)
         return llm_response
