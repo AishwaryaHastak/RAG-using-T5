@@ -14,12 +14,17 @@ class VecSearchRAGPipeline:
         self.response = None
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
-        self.es = Elasticsearch("http://localhost:9200")
-        # self.es = Elasticsearch("http://elasticsearch:9200")
+        self.es = Elasticsearch("http://elasticsearch:9200")
         self.emb_model = SentenceTransformer(embedding_model,truncate_dim=embedding_size) 
         self.data_dict = None
 
     def read_data(self):
+        """
+        Reads data from csv file and converts it into list of dictionaries.
+        Additionally, generates vector embeddings for the question and answer
+        using the SentenceTransformer model and adds them to the dictionary.
+        """
+        
         print('[DEBUG] Reading data...')
         # Read data into dataframe 
         data_file_path = os.path.join('data', 'data.csv')
@@ -38,6 +43,12 @@ class VecSearchRAGPipeline:
         self.data_dict = vector_data_dict
     
     def create_index(self):
+        """
+        Creates an Elasticsearch index with the specified settings and mappings,
+        and adds data from the data_dict to the index.
+
+        :return: None
+        """
         print('\n\n[[DEBUG] Creating Index...')
         index_settings={
             "settings": {
@@ -70,8 +81,7 @@ class VecSearchRAGPipeline:
         """
         Retrieves results from the index based on the query.
 
-        Args:
-            data_dict (list of dict): List of dictionaries containing the data to be indexed.
+        Args: 
             query (str): The search query string.
             num_results (int): The number of top results to return.
 
@@ -152,15 +162,14 @@ class VecSearchRAGPipeline:
             no_repeat_ngram_size=3,
             do_sample=True, 
             num_beams=4,        
-            early_stopping = True # Stop once all beams are finished 
-            # early_stopping = False # Stop once max_new_tokens is reached
+            early_stopping = True # Stop once all beams are finished  
         )
         
         llm_response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         
         return llm_response
     
-    def get_response(self,query, num_results=3, create_new_index=False):
+    def get_response(self,query, num_results=3):
         """
         Retrieves and generates a response for a given query.
 
@@ -170,9 +179,7 @@ class VecSearchRAGPipeline:
 
         Returns:
             str: The generated response from the LLM.
-        """
-        if create_new_index:
-            self.create_index(self.data_dict)
+        """ 
         results, time_taken, total_hits, relevance_score, topic  = self.search(query, num_results)
         prompt = self.generate_prompt(query, results)
         llm_response = self.generate_response(prompt)

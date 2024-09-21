@@ -6,9 +6,7 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false
     ports:
-      - "9200:9200"
-      # - "${ELASTIC_PORT:-9200}:9200"
-      # - "9300:9300"
+      - "9200:9200" 
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
@@ -34,7 +32,8 @@ services:
       - "8501:8501"
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URI=postgresql://your_user:your_password@postgres:5432/your_database_name   
+      - DATABASE_URI=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      - ELASTICSEARCH_URI=http://elasticsearch:9200  
     depends_on:
       - elasticsearch
       - postgres 
@@ -62,5 +61,4 @@ networks:
 volumes:
   elasticsearch_data:
   postgres_data:  
-  grafana_data:
-  # streamlit-db:
+  grafana_data: 

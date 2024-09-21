@@ -4,14 +4,16 @@ This project consists of several important directories and files. Below is a bri
 
 ## Directory Structure
 
-- **app/**
-  - **src/**: Contains the main source code for the application, including modules for database interaction and various pipelines.
-    - **db.py**: Script to initialize the postgres database, create tables and populate with data.
-    - **espipeline.py**: Script for elastic search RAG pipeline with text search.
-    - **vectorpipeline.py**: Script for elastic search RAG pipeline with vector search.
-  - **Dockerfile**: Configuration file for building the Docker image for the Streamlit application.
-  - **docker-compose.yml**: Defines the services, networks, and volumes used in the application setup.
-  - **.env.example**: Template file for environment variables. Copy and rename it to `.env` to configure your environment.
+```graphql
+app/
+├── src/
+│   ├── db.py              # Initializes the PostgreSQL database, creates tables, and populates with data.
+│   ├── espipeline.py      # Implements the Elasticsearch RAG pipeline with text search.
+│   └── vectorpipeline.py   # Implements the Elasticsearch RAG pipeline with vector search.
+├── Dockerfile              # Configuration file for building the Docker image for the Streamlit application.
+├── docker-compose.yml      # Defines the services, networks, and volumes used in the application setup.
+└── .env.example            # Template file for environment variables. Copy and rename it to `.env` to configure your environment.
+```
 
 ## Accessing Grafana
 

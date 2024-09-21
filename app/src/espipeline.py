@@ -13,13 +13,14 @@ class ElSearchRAGPipeline:
         self.response = None
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
-        self.es = Elasticsearch("http://elasticsearch:9200")
-        # self.es = Elasticsearch("http://localhost:9200")
+        self.es = Elasticsearch("http://elasticsearch:9200") 
         self.data_dict = None
 
     def read_data(self):
         """
         Reads data from csv file and converts it into list of dictionaries
+        
+        :return: None
         """
         print('[DEBUG] Reading data...')
         # Read data into dataframe 
@@ -30,6 +31,12 @@ class ElSearchRAGPipeline:
         self.data_dict = df.to_dict(orient="records")
         
     def create_index(self):
+        """
+        Creates an Elasticsearch index with the specified settings and mappings,
+        and adds data from the data_dict to the index.
+
+        :return: None
+        """
         print('\n\n[[DEBUG] Creating Index...')
 
         mappings = {
@@ -48,9 +55,7 @@ class ElSearchRAGPipeline:
         # Considering only the first 100 rows for now
         for i in tqdm(range(len(self.data_dict))):
             row = self.data_dict[i]
-            self.es.index(index=index_name, id=i, document=row)
-
-        # helpers.bulk(es, data_dict)
+            self.es.index(index=index_name, id=i, document=row) 
 
     def search(self, query, num_results=3):
         """
@@ -91,8 +96,7 @@ class ElSearchRAGPipeline:
         result_docs = [hit['_source'] for hit in results['hits']['hits']] 
 
         response = [result['answer'] for result in result_docs]
-
-        # print('\n\n[DEBUG] Retrieved results:', response)
+ 
         return response, time_taken, total_hits, relevance_score, topic
     
     def generate_prompt(self, query, response):
@@ -155,7 +159,7 @@ class ElSearchRAGPipeline:
         
         return llm_response
     
-    def get_response(self,query, num_results=3, create_new_index=False):
+    def get_response(self,query, num_results=3):
         """
         Retrieves and generates a response for a given query.
 
@@ -165,9 +169,7 @@ class ElSearchRAGPipeline:
 
         Returns:
             str: The generated response from the LLM.
-        """
-        if create_new_index:
-            self.create_index()
+        """ 
         results, time_taken, total_hits, relevance_score, topic = self.search(query, num_results)
         prompt = self.generate_prompt(query, results)
         llm_response = self.generate_response(prompt)
