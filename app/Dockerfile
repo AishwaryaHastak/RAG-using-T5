@@ -25,8 +25,8 @@ RUN pip install --no-cache-dir /app
 # Expose the port Streamlit will run on
 EXPOSE 8501
 
-# Initialize the database
-RUN python -c 'from src.setup_db import init_db; init_db()'
+# # Initialize the database
+# RUN python -c 'from src.db import init_db; init_db()'
 
 # Command to run the Streamlit application
 CMD ["streamlit", "run", "app.py"]

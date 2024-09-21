@@ -1,8 +1,6 @@
-TASKS.txt
-feedback.db
-ml.json
-temp.ipynb
-database.db
+TASKS.txt  
 ground_truth_id.ipynb
-src/__pycache__/
-__pycache__/
+app/src/__pycache__/ 
+app/src/src.* 
+app/temp.ipynb
+app/.env
